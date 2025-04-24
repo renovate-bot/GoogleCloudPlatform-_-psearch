@@ -1,0 +1,152 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraformrc
+terraform.rc
+.terraform.lock.hcl
+crash.log
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~ 
+
+tmp
+
+# Development environment
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*.local
+
+# Build and dependency directories
+node_modules/
+build/
+dist/
+coverage/
+
+# IDE and Editor files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/*
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+# Logs and debugging
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+debug.log
+
+# Testing
+/coverage
+.nyc_output/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.temp/
+
+# Operating System
+Thumbs.db
+.DS_Store
+*.pem
+
+# Python Virtual Environment
+.python-version
+.venv/
+venv/
+ENV/
+
+# Python Package Files
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Google Cloud
+*-credentials.json
+*-key.json
+service-account.json
+gcloud.json
+
+# Local development
+local_settings.py
+*.sqlite3
+*.db
+
+# React/Node
+.env.development.local
+.env.test.local
+.env.production.local
+.eslintcache
+package-lock.json
+npm-debug.log
+yarn.lock
+yarn-error.log
+yarn-debug.log
+.npm
+.pnp.js
+*.tsbuildinfo
+.cache
+.pnpm
+.next/
+/out/
+memory-bank/

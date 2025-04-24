@@ -101,11 +101,6 @@ graph TD
 ├── docs/                            # Project documentation
 │   ├── contributing.md              # Contribution guidelines
 │   └── USAGE.md                     # Detailed usage instructions
-├── memory-bank/                     # Project knowledge management
-│   ├── projectbrief.md              # Core project requirements
-│   ├── systemPatterns.md            # System architecture
-│   ├── techContext.md               # Technical context and constraints
-│   └── *.md                         # Other project documentation
 ├── src/
 │   ├── analytics/                   # Analytics components
 │   ├── application/                 # Frontend application
@@ -121,6 +116,7 @@ graph TD
 │   │   │   ├── search_api/          # Search API infrastructure
 │   │   │   └── spanner/             # Spanner database infrastructure
 │   │   └── main.tf                  # Main Terraform configuration
+│   │   └── variables.tf             # Variables Terraform configuration
 │   ├── psearch/                     # Backend services
 │   │   ├── gen_ai/                  # GenAI service
 │   │   │   └── services/            # AI service implementations

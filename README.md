@@ -256,7 +256,7 @@ This estimation supports the following volume:
 | Embeddings - Ingestion | Vertex AI | $121.67 |
 | **TOTAL** | - | **$1,491.06** |
 
-⚠️ **Disclamer:** This estimation does not include any Gemini-related costs. You will need to calculate those separately for your deployment based on your usage/volume.
+⚠️ **Disclaimer:** This estimation does not include any Gemini-related costs. You will need to calculate those separately for your deployment based on your usage/volume.
 
 ## Data Ingestion
 

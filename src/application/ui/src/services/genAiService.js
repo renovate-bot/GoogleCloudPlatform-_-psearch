@@ -16,6 +16,8 @@
 
 import axios from 'axios';
 import { GEN_AI_URL } from '../config';
+import productSchema from '../products.json'; // Updated import path for moved file
+import config from '../config'; // Import config to get projectId
 
 /**
  * Service for handling interactions with the Gen AI API
@@ -214,6 +216,308 @@ export const generateEnhancedImage = async (payload) => {
 
         throw error;
     }
+};
+
+/**
+ * Generates a BigQuery SQL script to transform data from a source table
+ * to the target product schema.
+ * @param {string} sourceTableId Full BigQuery source table ID (e.g., project.dataset.table)
+ * @param {string} destinationTableId Full BigQuery destination table ID (e.g., project.dataset.table)
+ * @returns {Promise<string>} The generated SQL script.
+ */
+export const generateTransformationSql = async (sourceTableId, destinationTableId) => {
+  try {
+    console.log(`Requesting SQL generation from ${sourceTableId} to ${destinationTableId}`);
+    console.log("Using destination schema defined in products.json"); // Avoid logging the whole schema
+
+    // Ensure projectId is available
+    const projectId = config.projectId;
+    if (!projectId || projectId === 'your-gcp-project-id') {
+        console.error("Project ID is not configured correctly in src/config.js");
+        throw new Error("Project ID is not configured. Please set REACT_APP_GCP_PROJECT_ID.");
+    }
+
+    // Adjust table IDs if they don't already include the project ID
+    const fullSourceTableId = sourceTableId.includes('.') ? sourceTableId : `${projectId}.${sourceTableId}`;
+    const fullDestinationTableId = destinationTableId.includes('.') ? destinationTableId : `${projectId}.${destinationTableId}`;
+
+
+    const response = await axios.post(`${GEN_AI_URL}/generate-sql`, {
+      source_table: fullSourceTableId,
+      destination_table: fullDestinationTableId,
+      destination_schema: productSchema // Send the imported JSON schema
+    }, {
+      timeout: 60000, // 60 second timeout, as SQL generation might take longer
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+
+    // Validate response data
+    if (!response.data || !response.data.sql_script) {
+      console.error("Invalid response from /generate-sql:", response.data);
+      throw new Error('Incomplete or invalid SQL script data received from AI service');
+    }
+
+    console.log("Generated SQL script received.");
+    
+    // Process the SQL script to ensure it's properly formatted for display
+    let sqlScript = response.data.sql_script.trim();
+    
+    // Remove any markdown code formatting that might have slipped through
+    if (sqlScript.startsWith("```") && sqlScript.endsWith("```")) {
+      sqlScript = sqlScript.substring(3, sqlScript.length - 3).trim();
+      // Also remove any language identifier like "sql"
+      if (sqlScript.startsWith("sql") || sqlScript.startsWith("SQL")) {
+        sqlScript = sqlScript.substring(3).trim();
+      }
+    }
+    
+    // Fix double backticks issue in table references
+    // This regex matches ``table_name`` pattern and replaces with `table_name`
+    sqlScript = sqlScript.replace(/``([^`]+)``/g, '`$1`');
+    
+    // Fix any other potential quoting issues
+    // 1. Remove extra spaces between backticks and table names
+    sqlScript = sqlScript.replace(/`\s+/g, '`');
+    sqlScript = sqlScript.replace(/\s+`/g, '`');
+    
+    // 2. Ensure project.dataset.table has proper quoting
+    const tableRefPattern = /`?([a-zA-Z0-9_-]+)\.([a-zA-Z0-9_-]+)\.([a-zA-Z0-9_-]+)`?/g;
+    sqlScript = sqlScript.replace(tableRefPattern, function(match, project, dataset, table) {
+      // Properly quote the full reference
+      if (!match.startsWith('`') || !match.endsWith('`')) {
+        return `\`${project}.${dataset}.${table}\``;
+      }
+      return match;
+    });
+    
+    console.log("Processed SQL script ready for display:", sqlScript.substring(0, 100) + "...");
+    return sqlScript; // Return the cleaned SQL string
+
+  } catch (error) {
+    console.error('Error generating transformation SQL:', error);
+
+    // Enhance error message based on error type
+    if (error.code === 'ECONNABORTED') {
+      throw new Error('Connection timeout. SQL generation took too long to complete.');
+    } else if (error.response) {
+      const status = error.response.status;
+      // Attempt to get detailed error message from backend
+      const message = error.response.data?.detail || error.response.data?.message || 'Unknown server error';
+      console.error(`Server error (${status}): ${message}`, error.response.data);
+      // Provide a user-friendly message, potentially including details if available
+      let userMessage = `Server error (${status}) while generating SQL.`;
+      if (typeof message === 'string' && message.length < 100) { // Avoid overly long technical details
+          userMessage += ` Details: ${message}`;
+      }
+      throw new Error(userMessage);
+    } else if (error.request) {
+      throw new Error('No response received from GenAI server for SQL generation. Please check connection and if the service is running.');
+    }
+
+    // Rethrow other errors, including the projectId configuration error
+    throw error;
+  }
+};
+
+/**
+ * Calls the backend GenAI service to refine a SQL script based on an error message.
+ * @param {string} sqlScript The current SQL script that needs refinement.
+ * @param {string} errorMessage The error message received from the dry run.
+ * @returns {Promise<string>} The refined SQL script.
+ */
+export const refineTransformationSql = async (sqlScript, errorMessage) => {
+  console.log("Attempting SQL refinement based on error:", errorMessage);
+  
+  try {
+    const response = await axios.post(`${GEN_AI_URL}/refine-sql`, {
+      sql_script: sqlScript,
+      error_message: errorMessage
+      // Optionally add source/destination context if needed by backend
+    }, {
+      timeout: 60000, // 60 second timeout for refinement
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+
+    if (response.data && response.data.refined_sql_script) {
+      console.log("SQL refinement successful.");
+      return response.data.refined_sql_script;
+    } else {
+      console.error("Invalid response from SQL refinement service:", response.data);
+      throw new Error("Invalid or incomplete response from SQL refinement service.");
+    }
+  } catch (error) {
+    console.error('Error refining transformation SQL:', error);
+    const message = error.response?.data?.detail || error.message || "An unknown error occurred during SQL refinement.";
+    throw new Error(`SQL Refinement Failed: ${message}`);
+  }
+};
+
+/**
+ * Uses the SQL fix endpoint in the Gen AI API to fix SQL errors.
+ * 
+ * @param {string} originalSql The original SQL that started the process
+ * @param {string} currentSql The current SQL version (may be previously refined)
+ * @param {string} errorMessage The error message from BigQuery
+ * @param {number} attemptNumber The current attempt number (for tracking)
+ * @returns {Promise<Object>} Object containing the suggested SQL fix, diff, and validation status
+ */
+export const generateSqlFix = async (originalSql, currentSql, errorMessage, attemptNumber = 1) => {
+  console.log(`Requesting SQL fix for attempt #${attemptNumber}`, {errorLength: errorMessage.length});
+  
+  try {
+    // Use the GEN_AI_URL instead of ingestionSourceUrl
+    const response = await axios.post(`${GEN_AI_URL}/sql/fix`, {
+      original_sql: originalSql,
+      current_sql: currentSql,
+      error_message: errorMessage,
+      attempt_number: attemptNumber
+    }, {
+      timeout: 60000,  // 60 second timeout
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+    
+    // Validate response data
+    if (!response.data) {
+      throw new Error("No data received from SQL fix service");
+    }
+    
+    console.log("SQL fix generated successfully", {
+      success: response.data.success,
+      diffLength: response.data.diff?.length || 0
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error("Error generating SQL fix:", error);
+    
+    // Enhanced error handling
+    let errorMessage = "Failed to generate SQL fix: ";
+    
+    if (error.response) {
+      const status = error.response.status;
+      const detail = error.response.data?.detail || "Unknown server error";
+      errorMessage += `Server error (${status}): ${detail}`;
+    } else if (error.request) {
+      errorMessage += "No response received from server. Check if the Gen AI API is running.";
+    } else {
+      errorMessage += error.message || "Unknown error";
+    }
+    
+    throw new Error(errorMessage);
+  }
+};
+
+/**
+ * Validates a fixed SQL query without executing it using the Gen AI API.
+ * 
+ * @param {string} sqlToApply The SQL to validate
+ * @param {number} attemptNumber The current attempt number (for tracking)
+ * @returns {Promise<Object>} Object with validation result
+ */
+export const validateSqlFix = async (sqlToApply, attemptNumber = 1) => {
+  console.log(`Validating SQL fix for attempt #${attemptNumber}`);
+  
+  try {
+    // Use the GEN_AI_URL instead of ingestionSourceUrl
+    const response = await axios.post(`${GEN_AI_URL}/sql/validate`, {
+      sql_script: sqlToApply,
+      timeout_seconds: 30
+    }, {
+      timeout: 35000,  // 35 second timeout
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+    
+    // Validation response should match the expected structure
+    if (!response.data) {
+      throw new Error("No data received from SQL validation service");
+    }
+    
+    console.log("SQL validation completed:", {
+      valid: response.data.valid,
+      hasError: !!response.data.error
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error("Error validating SQL fix:", error);
+    
+    // Enhanced error handling
+    let errorMessage = "Failed to validate SQL fix: ";
+    
+    if (error.response) {
+      const status = error.response.status;
+      const detail = error.response.data?.detail || "Unknown server error";
+      errorMessage += `Server error (${status}): ${detail}`;
+    } else if (error.request) {
+      errorMessage += "No response received from server. Check if the Gen AI API is running.";
+    } else {
+      errorMessage += error.message || "Unknown error";
+    }
+    
+    throw new Error(errorMessage);
+  }
+};
+
+/**
+ * Analyzes differences between original and fixed SQL scripts.
+ * 
+ * @param {string} originalSql The original SQL with errors
+ * @param {string} fixedSql The fixed SQL script
+ * @returns {Promise<Object>} Object with analysis result
+ */
+export const analyzeSqlDifferences = async (originalSql, fixedSql) => {
+  console.log(`Analyzing SQL differences between scripts`);
+  
+  try {
+    const response = await axios.post(`${GEN_AI_URL}/sql/analyze`, {
+      original_sql: originalSql,
+      fixed_sql: fixedSql
+    }, {
+      timeout: 30000,  // 30 second timeout
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!response.data) {
+      throw new Error("No data received from SQL analysis service");
+    }
+    
+    console.log("SQL analysis completed:", {
+      changesCount: response.data.changes?.length || 0
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error("Error analyzing SQL differences:", error);
+    
+    let errorMessage = "Failed to analyze SQL differences: ";
+    
+    if (error.response) {
+      const status = error.response.status;
+      const detail = error.response.data?.detail || "Unknown server error";
+      errorMessage += `Server error (${status}): ${detail}`;
+    } else if (error.request) {
+      errorMessage += "No response received from server. Check if the Gen AI API is running.";
+    } else {
+      errorMessage += error.message || "Unknown error";
+    }
+    
+    throw new Error(errorMessage);
+  }
 };
 
 // Old function to generate images (removed as it's replaced by generateEnhancedImage)

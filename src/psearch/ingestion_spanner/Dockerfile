@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Use Python 3.10 slim image
-FROM python:3.10-slim
+# Use Python 3.9 slim image
+FROM python:3.13-slim
 
 # Set working directory
 WORKDIR /app
@@ -26,13 +26,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source code
-COPY . /app/gen_ai
+COPY . /app/ingestion_spanner
 
 # Set Python path
 ENV PYTHONPATH=/app
 
-# Expose port
-EXPOSE 8080
-
 # Set the entrypoint
-CMD ["uvicorn", "gen_ai.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["python", "-m", "ingestion_spanner.main"]

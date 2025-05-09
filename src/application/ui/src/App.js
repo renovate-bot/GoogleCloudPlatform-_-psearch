@@ -34,8 +34,10 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import SettingsIcon from '@mui/icons-material/Settings';
+import FileUploadIcon from '@mui/icons-material/FileUpload';
 import RuleManager from './components/RuleManager';
 import ProductDetails from './components/ProductDetails';
+import SourceIngestion from './components/SourceIngestion';
 import Filters from './components/Filters'; // Import the custom filters component
 import AIFilterSuggestion from './components/AIFilterSuggestion'; // Import the AI filter suggestion component
 import ProductImage from './components/ProductImage'; // Import the optimized ProductImage component
@@ -57,7 +59,7 @@ function ProductSearch() {
     // Store filter configurations
     const [filterConfigs, setFilterConfigs] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
-    const productsPerPage = 12;
+    const productsPerPage = 24; // Increased from 12 to show more products per page
 
     // Format a filter name for display (convert lens_color to Lens Color)
     const formatFilterName = (name) => {
@@ -551,10 +553,20 @@ function ProductSearch() {
         navigate(`/product/${productId}`);
     }, [navigate]);
 
-    // Optimized product grid with on-demand image processing
+    // Optimized product grid with exactly 6 products per row
     const ProductGrid = memo(({ products, onProductClick }) => {
         return (
-            <Grid container spacing={3}>
+            <Grid 
+                container 
+                sx={{ 
+                    width: '100%', 
+                    margin: 0,
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    marginLeft: '-8px',
+                    marginRight: '-8px'
+                }}
+            >
                 {products.map((product) => {
                     // Extract just the minimal image data needed for this specific product
                     // This is done inline instead of processing all products at once
@@ -566,13 +578,22 @@ function ProductSearch() {
                         null;
 
                     return (
-                        <Grid item xs={12} sm={6} md={3} key={product.id}>
+                        <Grid 
+                            item 
+                            key={product.id}
+                            sx={{ 
+                                width: 'calc(16.666% - 16px)',
+                                padding: '8px',
+                                boxSizing: 'border-box'
+                            }}
+                        >
                             <Card
                                 sx={{
-                                    height: '100%',
+                                    height: '300px', // Further reduced height for 6-per-row layout
                                     display: 'flex',
                                     flexDirection: 'column',
                                     cursor: 'pointer',
+                                    transition: 'box-shadow 0.3s ease',
                                     '&:hover': {
                                         boxShadow: 6,
                                     }
@@ -584,43 +605,89 @@ function ProductSearch() {
                                     imageUrl={imageUrl}
                                     productName={product.name}
                                 />
-                                <CardContent sx={{ flexGrow: 1 }}>
-                                    <Typography gutterBottom variant="h6" component="div">
-                                        {product.name}
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                                        {product.title}
-                                    </Typography>
-                                    <Box sx={{ mt: 1, mb: 1 }}>
-                                        {product.categories && product.categories.map(category => (
-                                            <Chip
-                                                key={category}
-                                                label={category}
-                                                size="small"
-                                                sx={{ mr: 0.5, mb: 0.5 }}
-                                            />
-                                        ))}
+                                <CardContent sx={{ 
+                                    flexGrow: 1,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'space-between',
+                                    height: '100px', // Further reduced content height for smaller cards
+                                    padding: '8px',
+                                    overflow: 'hidden' // Prevent content overflow
+                                }}>
+                                    <Box>
+                                        <Typography 
+                                            gutterBottom 
+                                            variant="subtitle2" 
+                                            component="div"
+                                            sx={{
+                                                height: '38px', // Reduced height for title
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                display: '-webkit-box',
+                                                WebkitLineClamp: 2,
+                                                WebkitBoxOrient: 'vertical'
+                                            }}
+                                        >
+                                            {product.name}
+                                        </Typography>
+                                        <Typography 
+                                            variant="body2" 
+                                            color="text.secondary" 
+                                            gutterBottom
+                                            sx={{
+                                                height: '40px', // Fixed height for description
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                display: '-webkit-box',
+                                                WebkitLineClamp: 2,
+                                                WebkitBoxOrient: 'vertical'
+                                            }}
+                                        >
+                                            {product.title}
+                                        </Typography>
+                                        
+                                        {/* Categories with a fixed height container */}
+                                        <Box sx={{ 
+                                            height: '36px', 
+                                            overflowY: 'hidden',
+                                            display: 'flex',
+                                            flexWrap: 'wrap',
+                                            alignItems: 'flex-start'
+                                        }}>
+                                            {product.categories && product.categories.slice(0, 2).map(category => (
+                                                <Chip
+                                                    key={category}
+                                                    label={category}
+                                                    size="small"
+                                                    sx={{ mr: 0.5, mb: 0.5 }}
+                                                />
+                                            ))}
+                                        </Box>
                                     </Box>
-                                    <Typography variant="h6" color="primary">
-                                        ${product.priceInfo?.price}
-                                    </Typography>
-                                    {product.priceInfo?.originalPrice &&
-                                        product.priceInfo.originalPrice !== "0" &&
-                                        parseFloat(product.priceInfo.originalPrice) > parseFloat(product.priceInfo.price) && (
-                                            <Typography
-                                                variant="body2"
-                                                color="text.secondary"
-                                                sx={{ textDecoration: 'line-through' }}
-                                            >
-                                                ${product.priceInfo.originalPrice}
-                                            </Typography>
-                                        )}
-                                    <Chip
-                                        label={product.availability}
-                                        color={product.availability === 'IN_STOCK' ? 'success' : 'error'}
-                                        size="small"
-                                        sx={{ mt: 1 }}
-                                    />
+
+                                    {/* Price and availability at the bottom */}
+                                    <Box sx={{ mt: 'auto' }}>
+                                        <Typography variant="h6" color="primary">
+                                            ${product.priceInfo?.price}
+                                        </Typography>
+                                        {product.priceInfo?.originalPrice &&
+                                            product.priceInfo.originalPrice !== "0" &&
+                                            parseFloat(product.priceInfo.originalPrice) > parseFloat(product.priceInfo.price) && (
+                                                <Typography
+                                                    variant="body2"
+                                                    color="text.secondary"
+                                                    sx={{ textDecoration: 'line-through' }}
+                                                >
+                                                    ${product.priceInfo.originalPrice}
+                                                </Typography>
+                                            )}
+                                        <Chip
+                                            label={product.availability}
+                                            color={product.availability === 'IN_STOCK' ? 'success' : 'error'}
+                                            size="small"
+                                            sx={{ mt: 1 }}
+                                        />
+                                    </Box>
                                 </CardContent>
                             </Card>
                         </Grid>
@@ -632,9 +699,51 @@ function ProductSearch() {
 
     return (
         <Container maxWidth="lg" sx={{ mt: 4 }}>
-            <Grid container spacing={3}>
+            <Grid container spacing={3} sx={{ 
+                display: 'flex', 
+                flexWrap: { xs: 'wrap', sm: 'nowrap' }
+            }}>
                 {/* Filters Section */}
-                <Grid item xs={12} md={3}>
+                <Grid item xs={12} sm={4} md={3} sx={{ 
+                    flex: '0 0 auto',
+                    maxWidth: { xs: '100%', sm: '33.333%', md: '25%' },
+                    display: { xs: 'none', sm: 'block' } 
+                }}>
+                    <Card sx={{
+                        p: 2,
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                        borderRadius: '8px',
+                        position: 'sticky',
+                        top: '16px',
+                    }}>
+                        <Typography
+                            variant="h6"
+                            component="div"
+                            sx={{
+                                mb: 3,
+                                fontWeight: 600,
+                                fontSize: '20px',
+                                color: '#212121'
+                            }}
+                        >
+                            Filters
+                        </Typography>
+
+                        {/* Render the dynamic Filters component */}
+                        <Filters
+                            filterConfigs={filterConfigs}
+                            selectedFilters={selectedFilters}
+                            onFilterChange={handleFilterChange}
+                        />
+                    </Card>
+                </Grid>
+
+                {/* Filters Section - Mobile view */}
+                <Grid item sx={{ 
+                    display: { xs: 'block', sm: 'none' },
+                    width: '100%',
+                    mb: 2
+                }}>
                     <Card sx={{
                         p: 2,
                         boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
@@ -663,7 +772,10 @@ function ProductSearch() {
                 </Grid>
 
                 {/* Search and Products Section */}
-                <Grid item xs={12} md={9}>
+                <Grid item xs={12} sm={8} md={9} sx={{ 
+                    flex: '1 1 auto',
+                    maxWidth: { xs: '100%', sm: '66.666%', md: '75%' } 
+                }}>
                     {/* Use the isolated SearchInput component */}
                     <SearchInput onSearch={handleSearch} />
 
@@ -861,28 +973,38 @@ function App() {
                             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                                 PSearch
                             </Typography>
-                            <Button
-                                component={Link}
-                                to="/"
-                                color="inherit"
-                                startIcon={<SearchIcon />}
-                                sx={{ mr: 2 }}
-                            >
-                                Search
-                            </Button>
-                            <Button
-                                component={Link}
-                                to="/manage"
-                                color="inherit"
-                                startIcon={<SettingsIcon />}
-                            >
-                                Manage Rules
-                            </Button>
+            <Button
+                component={Link}
+                to="/"
+                color="inherit"
+                startIcon={<SearchIcon />}
+                sx={{ mr: 2 }}
+            >
+                Search
+            </Button>
+            <Button
+                component={Link}
+                to="/source-ingestion"
+                color="inherit"
+                startIcon={<FileUploadIcon />}
+                sx={{ mr: 2 }}
+            >
+                Source Ingestion
+            </Button>
+            <Button
+                component={Link}
+                to="/manage"
+                color="inherit"
+                startIcon={<SettingsIcon />}
+            >
+                Manage Rules
+            </Button>
                         </Toolbar>
                     </AppBar>
 
                     <Routes>
                         <Route path="/" element={<ProductSearch />} />
+                        <Route path="/source-ingestion" element={<SourceIngestion />} />
                         <Route path="/manage" element={<RuleManager />} />
                         <Route path="/product/:productId" element={<ProductDetails />} />
                     </Routes>

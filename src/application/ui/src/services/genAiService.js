@@ -247,7 +247,7 @@ export const generateTransformationSql = async (sourceTableId, destinationTableI
       destination_table: fullDestinationTableId,
       destination_schema: productSchema // Send the imported JSON schema
     }, {
-      timeout: 60000, // 60 second timeout, as SQL generation might take longer
+      timeout: 180000, // 180 second (3 minute) timeout for complex SQL generation
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
@@ -337,7 +337,7 @@ export const refineTransformationSql = async (sqlScript, errorMessage) => {
       error_message: errorMessage
       // Optionally add source/destination context if needed by backend
     }, {
-      timeout: 60000, // 60 second timeout for refinement
+      timeout: 180000, // 180 second (3 minute) timeout for SQL refinement
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
@@ -378,7 +378,7 @@ export const generateSqlFix = async (originalSql, currentSql, errorMessage, atte
       error_message: errorMessage,
       attempt_number: attemptNumber
     }, {
-      timeout: 60000,  // 60 second timeout
+      timeout: 180000,  // 180 second (3 minute) timeout for SQL fixes
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'

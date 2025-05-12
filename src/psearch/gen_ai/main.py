@@ -68,7 +68,7 @@ app.add_middleware(
 )
 
 # Get environment variables
-project_id = os.environ.get("PROJECT_ID", "psearch-dev-ze")
+project_id = os.environ.get("PROJECT_ID")
 location = "us-central1"
 
 # Initialize services

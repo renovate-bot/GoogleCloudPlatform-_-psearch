@@ -45,7 +45,7 @@ class SQLTransformationService:
         )
         
         # Set model name for Gemini from environment or use default
-        self.model = os.environ.get("GEMINI_MODEL", "gemini-2.5-pro-preview-03-25")
+        self.model = os.environ.get("GEMINI_MODEL", "gemini-2.5-pro-preview-05-06")
         
         # Define the SQL output schema for function calling
         self.sql_schema = FunctionDeclaration(
@@ -336,7 +336,7 @@ Provide a fixed version of the SQL script that resolves the error. Your response
             response = self.client.models.generate_content(
                 model=self.model,
                 contents=contents,
-                config=generate_content_config,
+                config=generate_content_config
             )
             
             # Extract the structured function response

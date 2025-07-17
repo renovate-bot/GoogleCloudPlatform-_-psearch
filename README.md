@@ -19,7 +19,7 @@ PSearch is an advanced product search platform built on Google Cloud Platform. I
 |-----------|--------|-------|
 | Core Search | ✅ Complete | Hybrid search combining vector and text search in Spanner |
 | Frontend UI | ✅ Complete | React-based UI with product search and filtering |
-| Ingestion | ⚠️ In Progress | Basic functionality working, generic data sources in development |
+| Ingestion | ✅ Complete | Spanner Reverse ETL |
 | GenAI | ✅ Complete | Content enrichment, image enhancement, and marketing generation |
 | Rules Engine | 🔄 Refactoring | Currently using mock data, migrating from Firestore to Spanner |
 
